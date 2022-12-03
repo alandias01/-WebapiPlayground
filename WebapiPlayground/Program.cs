@@ -20,6 +20,8 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// The request handling pipeline is composed as a series of middleware components
+// Used to specify how apps respond to HTTP requests
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
