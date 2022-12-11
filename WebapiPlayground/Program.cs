@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authentication.Negotiate;
+using WebapiPlayground.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Logging.AddDebug();
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -35,5 +37,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<RTHub>("/rt");
 
 app.Run();
