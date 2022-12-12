@@ -46,7 +46,7 @@ try
              .AllowAnyMethod()
 
              //Can't have AllowAnyOrigin() with AllowCredentials.  Will throw error
-             //.AllowAnyOrigin()
+             //.AllowAnyOrigin();
              .AllowCredentials();
          });
     });
@@ -64,7 +64,7 @@ try
     }
 
     app.UseCors("corspolicy");
-    app.UseHttpsRedirection();
+    //app.UseHttpsRedirection();
 
     app.UseAuthentication();
     app.UseAuthorization();
