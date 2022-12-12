@@ -59,7 +59,7 @@ namespace WebapiPlayground.Controllers
                 Enumerable.Range(0, 100).ToList().ForEach(
                     x => builder.AppendLine("The cat in the hat went out to get a pail of water so he can put out the fire"));
 
-                await File.WriteAllTextAsync("../data.txt", builder.ToString());
+                await File.WriteAllTextAsync("../stuff/data.txt", builder.ToString());
             }
             catch (Exception ex)
             {
@@ -74,7 +74,7 @@ namespace WebapiPlayground.Controllers
         {
             try
             {
-                var lines = await File.ReadAllLinesAsync("../data.txt");
+                var lines = await File.ReadAllLinesAsync("../stuff/data.txt");
                 return lines.ToList();
             }
             catch (Exception ex)
