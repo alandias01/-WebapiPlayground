@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authentication.Negotiate;
 using WebapiPlayground.Hubs;
 using Serilog;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using HealthChecks.UI.Client;
 
 var appsettings = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -23,6 +26,14 @@ try
     var corsOriginsAllowed = builder.Configuration.GetSection("CorsOrigin").Get<string[]>();
     // var corsOriginsAllowed2 = builder.Configuration.GetSection("CorsOrigin").GetChildren().Select(c => c.Value).ToArray();
     builder.Services.AddControllers();
+    builder.Services.AddHealthChecks()
+        .AddCheck("gsl1", () => HealthCheckResult.Healthy("SQL 1 Connection is good"))
+        .AddUrlGroup(new Uri("https://abc7fghafgar.com"), "gesService url check")
+        .AddFolder(x => x.AddFolder("../logs"), "LogFolder")
+        .AddCheck("gsl2", () => HealthCheckResult.Unhealthy("SQL 2 Connection is bad", new Exception("DB does not exist")));
+
+
+
     builder.Services.AddSignalR();
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
@@ -72,6 +83,10 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+    app.MapHealthChecks("/health", new HealthCheckOptions()
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
     app.MapHub<RTHub>("/rt");
 
     app.Run();
