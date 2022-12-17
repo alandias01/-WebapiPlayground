@@ -56,11 +56,11 @@ namespace WebapiPlayground.Controllers
         }
 
         [HttpGet("read3")]
-        public IEnumerable<string> ReadFile3()
+        public async Task<IEnumerable<string>> ReadFile3()
         {
             var sw = new Stopwatch();
             sw.Start();
-            var lines = fp.ReadFileAsync(file2);
+            var lines = await fp.ReadFileAsync(file2);
             sw.Stop();
 
             if (lines != null)
@@ -69,6 +69,16 @@ namespace WebapiPlayground.Controllers
                 return lines;
             }
             return new string[0];
+        }
+
+        [HttpGet("async")]
+        public async IAsyncEnumerable<int> Get()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                yield return i;
+            }
         }
 
         [HttpGet("create")]
@@ -123,21 +133,26 @@ namespace WebapiPlayground.Controllers
             return lines;
         }
 
-        public IList<string> ReadFileAsync(string file)
+        public async Task<List<string>> ReadFileAsync(string file)
         {
             var lines = new List<string>();
-            using (FileStream fs = File.Open($"../stuff/{file}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            //using (FileStream fs = File.Open($"../stuff/{file}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            var fso = new FileStreamOptions() 
+            { Mode = FileMode.Open, Access = FileAccess.Read, Share = FileShare.ReadWrite, Options = FileOptions.Asynchronous };
+
+            using (FileStream fs = File.Open($"../stuff/{file}", fso))
             {
                 using (StreamReader sr = new StreamReader(fs))
                 {
                     string line;
-                    while ((line = sr.ReadLine()) != null)
+                    while (true)
                     {
+                        line = await sr.ReadLineAsync();
+                        if (line == null) break;
                         var opt = new JsonSerializerSettings { Formatting = Formatting.None };
                         lines.Add(JsonConvert.DeserializeObject(line, opt).ToString());
                     }
                 }
-
             }
             return lines;
         }
