@@ -22,6 +22,8 @@ try
     builder.Logging.ClearProviders();
     builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
 
+    builder.Services.AddSingleton<INotificationService, NotificationService>();
+
     // Add services to the container.
     var corsOriginsAllowed = builder.Configuration.GetSection("CorsOrigin").Get<string[]>();
     // var corsOriginsAllowed2 = builder.Configuration.GetSection("CorsOrigin").GetChildren().Select(c => c.Value).ToArray();
