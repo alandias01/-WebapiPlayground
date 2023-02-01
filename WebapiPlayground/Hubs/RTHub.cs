@@ -20,6 +20,23 @@ namespace WebapiPlayground.Hubs
             //await Clients.All.SendAsync("ReceiveMessage", user);
             _notificationService.Subscribe2(Context.ConnectionId);
         }
+
+        //Any new connection, will trigger if user refreshes browser
+        //A connected user will not trigger this if they keep calling hub methods
+        //You can use this virtual method to ad connectionIds to a queue
+        public override Task OnConnectedAsync()
+        {
+            return base.OnConnectedAsync();
+        }
+
+        //Called when client refreshes, exception is null
+        //Called when client calls stop(), exception is null
+        //Called when network connection fails, exception has value
+        //You can use this virtual method to remove connectionIds from a queue
+        public override Task OnDisconnectedAsync(Exception? exception)
+        {
+            return base.OnDisconnectedAsync(exception);
+        }
     }
 
     public interface INotificationService
