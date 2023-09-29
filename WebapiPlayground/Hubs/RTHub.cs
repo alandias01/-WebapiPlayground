@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using System.Threading.Channels;
 
 namespace WebapiPlayground.Hubs
 {
@@ -19,6 +20,52 @@ namespace WebapiPlayground.Hubs
         {
             //await Clients.All.SendAsync("ReceiveMessage", user);
             _notificationService.Subscribe2(Context.ConnectionId);
+        }
+
+        public Task SendMessage3(string message)
+        {
+            var ds = new DataService();
+            //await Clients.All.SendAsync("ReceiveMessage", message);
+
+            while (true)
+            {
+                ds.ExecuteAsync(msg =>
+                {
+                    Clients.Caller.SendAsync("ReceiveMessage", message + msg);
+                });
+            }
+        }
+
+        public ChannelReader<string> SendChannel(CancellationToken cancellationToken)
+        {
+            var channel = Channel.CreateUnbounded<string>();
+            _ = WriteItemsAsync(channel.Writer, cancellationToken);
+            return channel.Reader;
+        }
+
+        private async Task WriteItemsAsync(ChannelWriter<string> writer, CancellationToken cancellationToken)
+        {
+            Exception localException = null;
+            try
+            {
+                for (var i = 0; i < 5; i++)
+                {
+                    await writer.WriteAsync(i.ToString(), cancellationToken);
+
+                    // Use the cancellationToken in other APIs that accept cancellation
+                    // tokens so the cancellation can flow down to them.
+                    await Task.Delay(1000, cancellationToken);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                localException = e;
+            }
+            finally
+            {
+                writer.Complete(localException);
+            }
         }
 
         //Any new connection, will trigger if user refreshes browser
@@ -71,24 +118,24 @@ namespace WebapiPlayground.Hubs
             {
                 _hub.Clients.Client(connectionId).SendAsync("ReceiveMessage", x);
             });
-        }
+        }        
+    }
 
-        public class DataService
+    public class DataService
+    {
+        public void ExecuteAsync(Action<string> callback)
         {
-            public void ExecuteAsync(Action<string> callback)
+            new Thread(() =>
             {
-                new Thread(() =>
+                for (int i = 0; i < 10; i++)
                 {
-                    for (int i = 0; i < 10; i++)
-                    {
-                        var uniqueData = DateTime.Now.Millisecond.ToString();
-                        callback(uniqueData);
-                        Thread.Sleep(100000);
-                    }
-                    callback("done");
+                    var uniqueData = DateTime.Now.Millisecond.ToString();
+                    callback(uniqueData);
+                    Thread.Sleep(100000);
+                }
+                callback("done");
 
-                }).Start();
-            }
+            }).Start();
         }
     }
 }

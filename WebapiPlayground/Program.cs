@@ -5,6 +5,13 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 
+/* 
+ * ASPNETCORE_ENVIRONMENT
+ * 
+ * 
+ */
+
+
 var appsettings = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json")

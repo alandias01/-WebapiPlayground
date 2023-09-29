@@ -1,4 +1,8 @@
-﻿{
+﻿/*
+  only used on the local development machine, isn't deployed, contains profile settings
+*/
+
+{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "iisSettings": {
     "windowsAuthentication": true,
