@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using WebapiPlayground.Models;
 
 namespace WebapiPlayground.Controllers
@@ -24,13 +25,47 @@ namespace WebapiPlayground.Controllers
             return res;
         }
 
+        public async Task<ActionResult<IEnumerable<Savedview>>> GetViews([FromQuery] LoadViewQuery query)
+        {
+            var auth = true;
+            if (!auth)
+            {
+                return Forbid();
+            }
+
+            var views = await svrepo.GetViews(query);
+            if(views == null)
+            {
+                return NotFound();
+            }
+
+            if(views.First().Id == 0)
+            {
+                //You can do a check for say bad user
+                return BadRequest("Cannot delete bad user");
+
+            }
+            return Ok(views);
+        }
+
         // GET: api/<SavedViewsController>
         [HttpGet("save")]
-        public async Task<IEnumerable<Savedview>> sv([FromQuery] Savedview sv)
+        public async Task<ActionResult<IEnumerable<Savedview>>> sv([FromQuery] Savedview sv)
         {
             //return new string[] { "value1", "value2" };
+            if (sv.Id == 0)
+            {
+                return BadRequest("Id cant be 0");
+            }
             var res = await svrepo.SaveView(sv);
-            return res;
+            return CreatedAtAction("GetViews", new { id = res.First().Id }, res);
+        }
+
+        public ActionResult<string> GetJson(Savedview sv)
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var jsonstr = JsonSerializer.Serialize(sv, options);
+            return Ok(jsonstr);
         }
 
         [HttpGet("test")]
@@ -68,6 +103,20 @@ namespace WebapiPlayground.Controllers
         }
     }
 
+    public interface ILoadViewQuery
+    {
+        string UserId { get; set; }
+        string ViewName { get; set; }
+        string ViewType { get; set; }
+    }
+
+    public class LoadViewQuery : ILoadViewQuery
+    {
+        public string UserId { get; set; }
+        public string ViewName { get; set; }
+        public string ViewType { get; set; }
+    }
+
     public class SavedViewsRepositiory
     {
         public SavedViewsRepositiory()
@@ -75,7 +124,7 @@ namespace WebapiPlayground.Controllers
 
         }
 
-        public async Task<IEnumerable<Savedview>> GetViews()
+        public async Task<IEnumerable<Savedview>> GetViews(ILoadViewQuery? query = null)
         {
             try
             {

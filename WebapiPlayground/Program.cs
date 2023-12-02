@@ -4,6 +4,7 @@ using Serilog;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
+using Microsoft.EntityFrameworkCore;
 
 /* 
  * ASPNETCORE_ENVIRONMENT
@@ -33,6 +34,7 @@ try
 
     // Add services to the container.
     var corsOriginsAllowed = builder.Configuration.GetSection("CorsOrigin").Get<string[]>();
+    // builder.Configuration.GetSection("CorsOrigin").Value
     // var corsOriginsAllowed2 = builder.Configuration.GetSection("CorsOrigin").GetChildren().Select(c => c.Value).ToArray();
     builder.Services.AddControllers();
     builder.Services.AddHealthChecks()
@@ -42,6 +44,10 @@ try
         .AddCheck("gsl2", () => HealthCheckResult.Unhealthy("SQL 2 Connection is bad", new Exception("DB does not exist")));
 
 
+    // var dbname_connstr = Convert.ToString(builder.Configuration.GetSection("db").Value);
+    // builder.Services.AddDbContext<dbname_context>(options => options.UseSqlServer(dbname_connstr));
+
+    // options pattern to store data in config and inject into other object using IOptionsSnapshot
 
     builder.Services.AddSignalR();
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
