@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -6,25 +7,54 @@ using WebapiPlayground.Models;
 
 namespace WebapiPlayground.Controllers
 {
-    [Route("api/[controller]")]
+    /* A controller is a group of actions
+     * An action is a method on a controller which handles requests
+     * Parameters on actions are bound to request data
+     * Controllers in a web API are classes that derive from ControllerBase
+     * In Web Api, actions use attribute routing
+     * Placing a route on the controller or action makes it attribute-routed
+     * Attribute routing maps actions to route templates
+     * Route template ex. [Route("Home/About")], [Route("Home/About/{id?}")] id is a route parameter
+    */
+
+    // You can restrict access at the controller level or at the action level
+    // If you Authorize at controller level, you can add [AllowAnonymous] to the action
+    [Authorize]
     [ApiController]
+    [Route("api/[controller]")] // or [Route("api/[controller]/[action]")]
     public class SavedViewsController : ControllerBase
     {
-        private SavedViewsRepositiory svrepo;
-        public SavedViewsController()
+        private readonly ILogger<SavedViewsController> _logger;
+        private ISavedViewsRepositiory svrepo;
+
+        public SavedViewsController(ILogger<SavedViewsController> logger)
         {
-            svrepo = new SavedViewsRepositiory();
+            _logger = logger;
+            svrepo = new SavedViewsRepositioryMock();
         }
 
-        // GET: api/<SavedViewsController>
+        /* CRUD
+        GetViews()  returns all or filtered if query string
+        GetViews controller/{id}
+        SaveView should create or update
+        DeleteView
+
+        return views
+        if arg is null, what should be returned
+        if return is null, or throws exceptions, what to do
+        Saving, if arg null or saving returns issue, what to return?
+        Deleting
+        */
+
+        // GET: api/SavedViews
         [HttpGet]
-        public async Task<IEnumerable<Savedview>> Get()
+        public async Task<ActionResult<IEnumerable<Savedview>>> GetViews()
         {
-            //return new string[] { "value1", "value2" };
-            var res = await svrepo.GetViews();
-            return res;
+            IEnumerable<Savedview> res = await svrepo.GetViews();
+            return res.ToList();
         }
 
+        [HttpGet("all")]
         public async Task<ActionResult<IEnumerable<Savedview>>> GetViews([FromQuery] LoadViewQuery query)
         {
             var auth = true;
@@ -34,46 +64,18 @@ namespace WebapiPlayground.Controllers
             }
 
             var views = await svrepo.GetViews(query);
-            if(views == null)
+            if (views == null)
             {
                 return NotFound();
             }
 
-            if(views.First().Id == 0)
+            if (views.First().Id == 0)
             {
                 //You can do a check for say bad user
                 return BadRequest("Cannot delete bad user");
 
             }
             return Ok(views);
-        }
-
-        // GET: api/<SavedViewsController>
-        [HttpGet("save")]
-        public async Task<ActionResult<IEnumerable<Savedview>>> sv([FromQuery] Savedview sv)
-        {
-            //return new string[] { "value1", "value2" };
-            if (sv.Id == 0)
-            {
-                return BadRequest("Id cant be 0");
-            }
-            var res = await svrepo.SaveView(sv);
-            return CreatedAtAction("GetViews", new { id = res.First().Id }, res);
-        }
-
-        public ActionResult<string> GetJson(Savedview sv)
-        {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var jsonstr = JsonSerializer.Serialize(sv, options);
-            return Ok(jsonstr);
-        }
-
-        [HttpGet("test")]
-        public async Task<string> test()
-        {
-
-            var res = await svrepo.TestView();
-            return res;
         }
 
         // GET api/<SavedViewsController>/5
@@ -83,11 +85,25 @@ namespace WebapiPlayground.Controllers
             return "value";
         }
 
-        // POST api/<SavedViewsController>
-        [HttpPost]
-        public void Post([FromQuery] string viewtype, string saveobj, bool isglobal)
+        // GET: api/<SavedViewsController>
+        [HttpPost("saveview")]
+        public async Task<ActionResult<Savedview>> SaveView([FromQuery] Savedview sv)
         {
+            //return new string[] { "value1", "value2" };
+            if (sv.Id == 0)
+            {
+                return BadRequest("Id cant be 0");
+            }
+            var res = await svrepo.SaveView(sv);
+            return CreatedAtAction("GetViews", new { id = res.Id }, res);
+        }
 
+        [HttpGet("json")]
+        public ActionResult<string> GetJson(Savedview sv)
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var jsonstr = JsonSerializer.Serialize(sv, options);
+            return Ok(jsonstr);
         }
 
         // PUT api/<SavedViewsController>/5
@@ -117,11 +133,16 @@ namespace WebapiPlayground.Controllers
         public string ViewType { get; set; }
     }
 
-    public class SavedViewsRepositiory
+    public interface ISavedViewsRepositiory
+    {
+        Task<IEnumerable<Savedview>> GetViews(ILoadViewQuery? query = null);
+        Task<Savedview> SaveView(Savedview savedview);
+    }
+
+    public class SavedViewsRepositiory : ISavedViewsRepositiory
     {
         public SavedViewsRepositiory()
         {
-
         }
 
         public async Task<IEnumerable<Savedview>> GetViews(ILoadViewQuery? query = null)
@@ -138,7 +159,7 @@ namespace WebapiPlayground.Controllers
             }
         }
 
-        public async Task<IEnumerable<Savedview>> SaveView(Savedview savedview)
+        public async Task<Savedview> SaveView(Savedview savedview)
         {
             try
             {
@@ -151,7 +172,7 @@ namespace WebapiPlayground.Controllers
 
                 string sql = "exec alan.dbo.proc_savedviews_upsertview @viewtype, @saveobj, @isglobal";
                 var res = await con.Savedviews.FromSqlRaw(sql, sqlparams.ToArray()).ToListAsync();
-                return res;
+                return res.First();
             }
             catch (Exception)
             {
@@ -167,6 +188,41 @@ namespace WebapiPlayground.Controllers
             };
             //var res = await con.Savedviews($"execute alan.dbo.proc_savedviews_testview @retval output", sqlparams.ToArray()).ToListAsync();
             return "true";
+        }
+    }
+
+    public class SavedViewsRepositioryMock : ISavedViewsRepositiory
+    {
+        List<Savedview> savedviews = new List<Savedview>();
+        public SavedViewsRepositioryMock()
+        {
+            savedviews = new List<Savedview>
+            {
+                new Savedview { Id = 1, Saveobj = "save1" },
+                new Savedview { Id = 2, Saveobj = "save2" },
+                new Savedview { Id = 3, Saveobj = "save3" },
+                new Savedview { Id = 4, Saveobj = "save4" }
+            };
+        }
+
+        public Task<IEnumerable<Savedview>> GetViews(ILoadViewQuery? query = null)
+        {
+            return Task.FromResult(savedviews as IEnumerable<Savedview>);
+        }
+
+        public Task<Savedview> SaveView(Savedview savedview)
+        {
+            if (savedview != null)
+            {
+                var maxId = savedviews.Max(x => x.Id);
+                savedview.Id = maxId;
+                savedviews.Add(savedview);
+                return Task.FromResult(savedview);
+            }
+            else
+            {
+                throw new ArgumentNullException();
+            }
         }
     }
 }
