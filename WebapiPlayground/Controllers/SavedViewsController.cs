@@ -54,7 +54,10 @@ namespace WebapiPlayground.Controllers
             return res.ToList();
         }
 
-        [HttpGet("all")]
+        // If you call this and don't put a value for query, query will not be null but the fields are null
+        // https://localhost:7150/api/SavedViews/allorfilter
+        // https://localhost:7150/api/SavedViews/allorfilter?userid=2
+        [HttpGet("allorfilter")]
         public async Task<ActionResult<IEnumerable<Savedview>>> GetViews([FromQuery] LoadViewQuery query)
         {
             var auth = true;
@@ -121,16 +124,16 @@ namespace WebapiPlayground.Controllers
 
     public interface ILoadViewQuery
     {
-        string UserId { get; set; }
-        string ViewName { get; set; }
-        string ViewType { get; set; }
+        int? UserId { get; set; }
+        string? ViewName { get; set; }
+        string? ViewType { get; set; }
     }
 
     public class LoadViewQuery : ILoadViewQuery
     {
-        public string UserId { get; set; }
-        public string ViewName { get; set; }
-        public string ViewType { get; set; }
+        public int? UserId { get; set; }
+        public string? ViewName { get; set; }
+        public string? ViewType { get; set; }
     }
 
     public interface ISavedViewsRepositiory
@@ -207,6 +210,15 @@ namespace WebapiPlayground.Controllers
 
         public Task<IEnumerable<Savedview>> GetViews(ILoadViewQuery? query = null)
         {
+            //var result = new List<IEnumerable<Savedview>>();
+            if (query != null)
+            {
+                var result = savedviews.Where(x =>
+                    (query.UserId == null || x.Id == query.UserId) &&
+                    (query.ViewType == null || x.Viewtype == query.ViewType)
+                    );
+                return Task.FromResult(result);
+            }
             return Task.FromResult(savedviews as IEnumerable<Savedview>);
         }
 
